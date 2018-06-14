@@ -1,3 +1,1 @@
-[12-Jun-2018 15:57:07 UTC] PHP Fatal error:  Cannot use object of type validacionImagen as array in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/login.php on line 248
-[12-Jun-2018 16:00:35 UTC] PHP Fatal error:  Cannot use object of type validacionImagen as array in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/login.php on line 249
-[12-Jun-2018 16:00:54 UTC] PHP Fatal error:  Cannot use object of type validacionImagen as array in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/login.php on line 249
+[14-Jun-2018 21:29:28 UTC] PHP Warning:  unlink(../../image/catalog/profile/81Gx+nkZ5mL._SL1500_.jpg): No such file or directory in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/login.php on line 99

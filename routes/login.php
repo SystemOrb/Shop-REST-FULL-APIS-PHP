@@ -1,4 +1,7 @@
 <?php
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type");
+header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
 require_once '../models/config.php';
 require_once '../models/connection.php';
 require_once '../models/imagenValidacion.php';
@@ -30,18 +33,24 @@ class loginShop {
      */
     public function registerShop() {
        if(!$this->VerifyUser($_POST['shop_email'])) {
-            $sql = '?,?,?,?,?,?';
-            $fields = 'shop_name,shop_address,shop_email,shop_phone,shop_password,shop_date_added';
+            $time = time();
+            $date = date("Y-m-d ", $time);
+            $sql = '?,?,?,?,?,?,?';
+            $fields = 'customer_group_id,shop_name,shop_address,shop_email,shop_phone,shop_password,shop_date_added';
             $ObjectShop = $this->BBDD->insertDriver($sql,PREFIX.'shop_customer', $this->driver, $fields);
             $this->BBDD->runDriver(array(
+                $this->BBDD->scapeCharts($_POST['customer_group_id']),
                 $this->BBDD->scapeCharts($_POST['shop_name']),
                 $this->BBDD->scapeCharts($_POST['shop_address']),
                 $this->BBDD->scapeCharts($_POST['shop_email']),
                 $this->BBDD->scapeCharts($_POST['shop_phone']),
                 $this->BBDD->scapeCharts($this->hashPassword($_POST['shop_password'])),
-                $this->BBDD->scapeCharts($_POST['shop_date_added'])
+                $this->BBDD->scapeCharts($date)
             ), $ObjectShop);
-            return json_encode($_POST);
+            $object = array();
+            $object['status'] = true;
+            $object['data'] = $_POST;
+            return json_encode($object);
         } else {
             $object = array();
             $object['status'] = false;
@@ -74,6 +83,8 @@ class loginShop {
                             ), $objectUpdateProfile);
                                 $success = array();
                                 $success['status'] = true;
+                                $success['path'] = str_replace('../../image/', '', $fileImage);
+                                $success['data'] = $_POST;
                                 $success['message'] = 'Perfil actualizado con éxito';
                                 return json_encode($success);                            
                         } catch (PDOException $ex) {
@@ -100,6 +111,8 @@ class loginShop {
                                   ), $objectProductImages);
                                     $success = array();
                                     $success['status'] = true;
+                                    $success['path'] = str_replace('../../image/', '', $fileImage);
+                                    $success['data'] =  $_POST;
                                     $success['message'] = 'Perfil actualizado con éxito';
                                     return json_encode($success);
                              } else {
@@ -129,10 +142,15 @@ class loginShop {
                     ), $objectUpdateUser);
                     $success = array();
                     $success['status'] = true;
+                    $success['data'] = $_POST;
                     $success['message'] = 'Perfil actualizado con éxito';
                     return json_encode($success);
                 } catch (PDOException $ex) {
-                    return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+                    $object = array();
+                    $object['status'] = false;
+                    $object['message'] = 'Fallo al intentar actualizar, inténtalo más tarde';
+                    $object['err'] = $ex->getMessage() . ' ' . $ex->getCode() . ' ' . $ex->getLine();
+                    return json_encode($object);
                 }
             }
         }
@@ -155,9 +173,10 @@ class loginShop {
     }
         public function getUser()
     {
-     $customer = $this->BBDD->selectDriver('shop_email LIKE ?',PREFIX.'shop_customer',$this->driver);
+     $customer = $this->BBDD->selectDriver('shop_email LIKE ? && customer_group_id = ?',PREFIX.'shop_customer',$this->driver);
      $this->BBDD->runDriver(array(
-         $this->BBDD->scapeCharts($_POST['shop_email'])         
+         $this->BBDD->scapeCharts($_POST['shop_email']),
+         $this->BBDD->scapeCharts(2)
              ),$customer);
      if($this->BBDD->verifyDriver($customer))
      {
@@ -175,7 +194,12 @@ class loginShop {
        {
            if($this->pwdAuth($_POST['shop_password'], $cli->shop_password))
            {
-               echo $this->sessionAuth($cli->shop_email, $cli->user_id, $cli->status,$cli->shop_name);
+               echo $this->sessionAuth($cli->shop_email, $cli->user_id,
+                       $cli->status,$cli->shop_name,
+                       $cli->customer_group_id,
+                       $cli->shop_address,
+                       $cli->shop_phone,
+                       $cli->shop_image);
            }else{
                 $ObjectClient = array();
                 $ObjectClient['status'] = 'pwd_wrong';
@@ -198,13 +222,16 @@ class loginShop {
            $this->BBDD->scapeCharts($customer)
        ), $update);       
    }
-   public function sessionAuth($email,$id,$status,$realname)
+   public function sessionAuth($email,$id,$status,$realname, $customer_type, $address, $phone,$picture)
    {session_start();
        $_SESSION['email'] = $email;
        $_SESSION['id'] = $id;
        $_SESSION['permise'] = $status;
        $_SESSION['realname'] = $realname;
-       // $_SESSION['customer_type'] = $customer_type;
+       $_SESSION['customer_type'] = $customer_type;
+       $_SESSION['address'] = $address;
+       $_SESSION['phone'] = $phone;
+       $_SESSION['photo'] = $picture;
        $_SESSION['status'] = $status;
        return $this->returnSession();
    }
@@ -216,6 +243,9 @@ class loginShop {
         $this->sessionAuth['id'] = $_SESSION['id'];
         $this->sessionAuth['permise'] = $_SESSION['status'];
         $this->sessionAuth['customer_type'] = $_SESSION['customer_type'];
+        $this->sessionAuth['phone'] = $_SESSION['phone'];
+        $this->sessionAuth['address'] = $_SESSION['address'];
+        $this->sessionAuth['photo'] = $_SESSION['photo'];
         $this->sessionAuth['status'] = 'done';
         if(isset($_REQUEST['confirm_account']) && (!empty($_REQUEST['confirm_account'])))
         {
