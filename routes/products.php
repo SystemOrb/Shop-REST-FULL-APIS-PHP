@@ -1,4 +1,7 @@
 <?php 
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type");
+header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
 /*
  * Backend que se encarga de construir los productos desde la empresa
  * Carlos Estarita
@@ -18,7 +21,7 @@ if($_GET) {
      *  INSERTS
      *************************************************************/
         case 'insert':
-            echo $productRoute->insertProduct($_GET['user_id']);
+            echo $productRoute->insertProduct();
             break;      
         case 'insertDescription':
             echo $productRoute->insertDescription();
@@ -49,13 +52,13 @@ if($_GET) {
      *  UPDATES
      *************************************************************/
         case 'update':
-            echo $productRoute->updateProduct($_GET['product_id'], $_GET['user_id']);
+            echo $productRoute->updateProduct();
             break;
         case 'updateDescription':
-            echo $productRoute->updateProductDescription($_GET['product_id'], $_GET['user_id']);
+            echo $productRoute->updateProductDescription();
             break;
         case 'updateDiscount':
-            echo $productRoute->updateDiscount($_GET['product_id']);
+            echo $productRoute->updateDiscount();
             break;
         case 'updateFilter':
             echo $productRoute->updateFilter();
@@ -130,7 +133,13 @@ class products {
      * para hacer la relación
      */
     public function insertProduct($user_id) {
-        try {
+        $fileImage = new validacionImagen();
+         if($fileImage->_getValidate_($_FILES['image'])) {
+             $file = $this->loadImage($_FILES['image']);
+             if ($file!=null) {
+           try {
+            $time = time();
+            $date = date("Y-m-d ", $time);
             $sql = '?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?';
             $fields = '
                         user_id,model,sku,upc,ean,jan,isbn,mpn,
@@ -153,7 +162,7 @@ class products {
                 $this->BBDD->scapeCharts($_REQUEST['location']),
                 $this->BBDD->scapeCharts($_REQUEST['quantity']),
                 $this->BBDD->scapeCharts($_REQUEST['stock_status_id']),
-                $this->BBDD->scapeCharts($_REQUEST['image']),
+                $this->BBDD->scapeCharts(str_replace('../../image/', '', $file)),
                 $this->BBDD->scapeCharts($_REQUEST['manufacturer_id']),
                 $this->BBDD->scapeCharts($_REQUEST['shipping']),
                 $this->BBDD->scapeCharts($_REQUEST['price']),
@@ -171,26 +180,81 @@ class products {
                 $this->BBDD->scapeCharts($_REQUEST['sort_order']),
                 $this->BBDD->scapeCharts($_REQUEST['status']),
                 $this->BBDD->scapeCharts($_REQUEST['viewed']),
-                $this->BBDD->scapeCharts($_REQUEST['date_added']),
-                $this->BBDD->scapeCharts($_REQUEST['date_modified']),
+                $this->BBDD->scapeCharts($date),
+                $this->BBDD->scapeCharts(''),
             ), $objectProduct);
-            return json_encode(print_r($_POST));
+            $success = array();
+            $success['status'] = true;
+            $success['message'] = 'El articulo ha sido publicado correctamente';
+            $id = $this->getProductByRef($_POST['user_id'], $_POST['model'], $date);
+            if($id!=null) {
+                $success['data'] = $id;
+            } else {
+                $success['data'] = 0;
+            }
+            return json_encode($success);
         } catch (PDOException $ex) {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
-        }        
+        } 
+       } else {
+           $error = array();
+           $error['status'] = false;
+           $error['message'] = 'El formato o peso de la imagen es incorrecto';
+           return json_encode($error);
+       }
+     } else {
+           $error = array();
+           $error['status'] = false;
+           $error['message'] = 'El formato o peso de la imagen es incorrecto';
+           return json_encode($error);
+     }       
+   }
+        /*
+     * Función que se encarga de traer un parametro de tipo File
+     * validar formato, tipo y transformar el path 
+     */
+    public function insertImage() {
+        $fileImage = new validacionImagen();
+        if($fileImage->_getValidate_($_FILES['image'])) {
+            $file = $this->loadImage($_FILES['image']);
+            if ($file!=null) {
+                // Si pasa toda la validación de la imagen entonces publicamos en la bbdd
+                try {
+                    $sql = '?,?,?,?';
+                    $fields = 'product_image_id,product_id,
+                               image, sort_order
+                               ';
+                    $objectProductImage = $this->BBDD->insertDriver($sql,PREFIX.'product_image', $this->driver, $fields);
+                    $this->BBDD->runDriver(array(
+                        $this->BBDD->scapeCharts($_POST['product_image_id']),
+                        $this->BBDD->scapeCharts($_POST['product_id']),
+                        $this->BBDD->scapeCharts(str_replace('../../image/', '', $file)),
+                        $this->BBDD->scapeCharts($_POST['sort_order']),
+                    ), $objectProductImage);
+                    return json_encode(print_r($_POST));
+                } catch (Exception $ex) {
+                    return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+                }
+            }else {
+                return json_encode('El peso de la imagen o el formato no es correcto');
+            }
+        } else {
+            return json_encode('Debes cargar un archivo');
+        }
     }
     /*
      * Función para insertar los datos de lectura en la tienda
      */
     public function insertDescription() {
          try {
-        $sql = '?,?,?,?,?,?,?,?';
-        $fields = 'product_id,language_id,name,
+        $sql = '?,?,?,?,?,?,?,?,?';
+        $fields = 'user_id,product_id,language_id,name,
                    description,tag,meta_title,
                    meta_description,meta_keyword
                    ';
         $objectProductDescription = $this->BBDD->insertDriver($sql,PREFIX.'product_description', $this->driver, $fields);  
         $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($_REQUEST['user_id']),
             $this->BBDD->scapeCharts($_REQUEST['product_id']),
             $this->BBDD->scapeCharts($_REQUEST['language_id']),
             $this->BBDD->scapeCharts($_REQUEST['name']),
@@ -240,39 +304,6 @@ class products {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
     }
-    /*
-     * Función que se encarga de traer un parametro de tipo File
-     * validar formato, tipo y transformar el path 
-     */
-    public function insertImage() {
-        $fileImage = new validacionImagen();
-        if($fileImage->_getValidate_($_FILES['image'])) {
-            $file = $this->loadImage($_FILES['image']);
-            if ($file!=null) {
-                // Si pasa toda la validación de la imagen entonces publicamos en la bbdd
-                try {
-                    $sql = '?,?,?,?';
-                    $fields = 'product_image_id,product_id,
-                               image, sort_order
-                               ';
-                    $objectProductImage = $this->BBDD->insertDriver($sql,PREFIX.'product_image', $this->driver, $fields);
-                    $this->BBDD->runDriver(array(
-                        $this->BBDD->scapeCharts($_POST['product_image_id']),
-                        $this->BBDD->scapeCharts($_POST['product_id']),
-                        $this->BBDD->scapeCharts(str_replace('../../image/', '', $file)),
-                        $this->BBDD->scapeCharts($_POST['sort_order']),
-                    ), $objectProductImage);
-                    return json_encode(print_r($_POST));
-                } catch (Exception $ex) {
-                    return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
-                }
-            }else {
-                return json_encode('El peso de la imagen o el formato no es correcto');
-            }
-        } else {
-            return json_encode('Debes cargar un archivo');
-        }
-    }
     // Añadir un descuento a un unico producto solicitado
     public function insertSpecial() {
         try {
@@ -315,7 +346,7 @@ class products {
      /**************************************************************
      *  UPDATE MODE
      *************************************************************/
-        public function updateProduct($product_id,$user_id) {
+        public function updateProduct() {
          try {
              $fields = 'model = ?, sku = ?, upc=?,
                         ean=?,jan=?,isbn=?,mpn=?,
@@ -359,8 +390,8 @@ class products {
                  $this->BBDD->scapeCharts($_POST['status']),
                  $this->BBDD->scapeCharts($_POST['date_added']),
                  $this->BBDD->scapeCharts($_POST['date_modified']),
-                 $this->BBDD->scapeCharts($user_id),
-                 $this->BBDD->scapeCharts($product_id)                
+                 $this->BBDD->scapeCharts($_POST['user_id']),
+                 $this->BBDD->scapeCharts($_POST['product_id'])                
              ), $objectProductUpdate);
              return json_encode(print_r($_POST));
         } catch (PDOException $ex) {
@@ -387,7 +418,7 @@ class products {
         ), $objectProductDescription);
         return json_encode(print_r($_POST));
     }
-    public function updateDiscount($product_id) {
+    public function updateDiscount() {
         $fields = 'customer_group_id = ?,quantity = ?,priority = ?,
             price = ?,date_start = ?,date_end = ?';
     $objectProductDiscount = $this->BBDD->updateDriver('product_discount_id = ?',PREFIX.'product_discount', $this->driver, $fields);
@@ -688,6 +719,32 @@ class products {
             }
           } catch (Exception $ex) {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+        }
+    }
+    /*}
+     * Para buscar el ultimo producto publicado con esa referencia
+     * IDEAL para hacer busqueda sin el ID UNICO
+     */
+    private function getProductByRef($usr_id, $model, $date) {
+        try {
+            $objectRef = $this->BBDD->selectDriver('user_id = ? && model = ? && date_added = ?',PREFIX.'product', $this->driver);
+            $this->BBDD->runDriver(array(
+                $this->BBDD->scapeCharts($usr_id),
+                $this->BBDD->scapeCharts($model),
+                $this->BBDD->scapeCharts("$date 00:00:00")
+            ), $objectRef);
+            if($this->BBDD->verifyDriver($objectRef)) {
+                foreach($this->BBDD->fetchDriver($objectRef) as $id) {
+                    return $id->product_id;
+                }
+            } else {
+                return null;
+            }
+        } catch (PDOException $ex) {
+            $error = array();
+            $error['status'] = false;
+            $error['message'] = 'Fallo al obtener la ID de este producto';
+            return json_encode($error);
         }
     }
     protected $BBDD;
