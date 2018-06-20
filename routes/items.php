@@ -30,11 +30,17 @@ if($_GET) {
         case 'filter':
             echo $openCartItems->filter($_GET['filter_group_id']);
             break;
+        case 'filterAll':
+            echo $openCartItems->filterAll();
+            break;        
         case 'manufacturer':
             echo $openCartItems->manufacturer();
             break;
         case 'category':
             echo $openCartItems->category();
+            break;
+        case 'categoryAll':
+            echo $openCartItems->categoryAll();
             break;
         case 'categoryDescription':
             echo $openCartItems->categoryDescriptionById($_GET['category_id']);
@@ -86,6 +92,11 @@ class Items {
         ), $filterType);
         return json_encode($this->BBDD->fetchDriver($filterType));        
     }
+        public function filterAll() {
+        $filterType = $this->BBDD->selectDriver(null,PREFIX.'filter_description', $this->driver);
+        $this->BBDD->runDriver(null, $filterType);
+        return json_encode($this->BBDD->fetchDriver($filterType));        
+    }    
         public function manufacturer() {
         $manufacturerType = $this->BBDD->selectDriver(null,PREFIX.'manufacturer', $this->driver);
         $this->BBDD->runDriver(null, $manufacturerType);
@@ -99,6 +110,14 @@ class Items {
         return json_encode($this->BBDD->fetchDriver($categoryType));
              
     } 
+        public function categoryAll() {
+        $categoryType = $this->BBDD->selectDriver('parent_id != ?',PREFIX.'category', $this->driver);
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts(0)
+        ), $categoryType);        
+        return json_encode($this->BBDD->fetchDriver($categoryType));
+             
+    }    
             public function categoryId($category_id) {
         $categoryType = $this->BBDD->selectDriver('parent_id = ?',PREFIX.'category', $this->driver);
         $this->BBDD->runDriver(array(

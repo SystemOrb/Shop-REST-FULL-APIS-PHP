@@ -1,0 +1,7 @@
+[20-Jun-2018 17:27:55 UTC] PHP Fatal error:  Uncaught exception 'PDOException' with message 'SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '74-4' for key 'PRIMARY'' in /home/nismwq38dt2p/public_html/ragazza_backend/api/models/connection.php:88
+Stack trace:
+#0 /home/nismwq38dt2p/public_html/ragazza_backend/api/models/connection.php(88): PDOStatement->execute(Array)
+#1 /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php(711): dbDriver->runDriver(Array, Object(PDOStatement))
+#2 /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php(92): products->updateFilter()
+#3 {main}
+  thrown in /home/nismwq38dt2p/public_html/ragazza_backend/api/models/connection.php on line 88

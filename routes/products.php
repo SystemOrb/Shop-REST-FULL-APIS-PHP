@@ -41,7 +41,10 @@ if($_GET) {
             break;
         case 'selectImage':
             echo $productRoute->selectProductImagesById($_GET['product_id']);
-            break;     
+            break;
+        case 'selectTableData':
+            echo $productRoute->selectTableData($_GET['product_id']);
+            break;
      /**************************************************************
      *  INSERTS
      *************************************************************/
@@ -204,6 +207,15 @@ class products {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
     }
+       public function selectTableData($product_id) {
+           try {
+            $filter = str_replace("]", "", $this->selectProductFilterById($product_id));
+            $cat = str_replace("[", ",", $this->selectProductcategoryById($product_id));
+            return $filter.$cat;
+           } catch (PDOException $ex) {
+               return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+           }
+       }
        public function selectProductcategoryById($product_id) {
         try {
             $productData = $this->BBDD->selectDriver('product_id = ?',PREFIX.'product_to_category', $this->driver);
@@ -510,7 +522,75 @@ class products {
      *  UPDATE MODE
      *************************************************************/
         public function updateProduct() {
+         $fileImage = new validacionImagen();
+         if($fileImage->_getValidate_($_FILES['image'])) {
+             // Con imagen
+             $file = $this->loadImage($_FILES['image']);
+             if ($file!=null) {
          try {
+             $fields = 'model = ?, sku = ?, upc=?,
+                        ean=?,jan=?,isbn=?,mpn=?,
+                        location=?,quantity=?,
+                        stock_status_id=?,image=?,
+                        manufacturer_id=?,shipping=?,
+                        price=?,points=?,tax_class_id=?,
+                        date_available=?,weight=?,
+                        weight_class_id=?,length=?,
+                        width=?,height=?,length_class_id=?,
+                        subtract=?,minimum=?,sort_order=?,
+                        status=?,date_added=?,date_modified=?';
+             $objectProductUpdate = $this->BBDD->updateDriver('user_id = ? && product_id = ?',PREFIX.'product', $this->driver, $fields);
+             $this->BBDD->runDriver(array(
+                 $this->BBDD->scapeCharts($_POST['model']),
+                 $this->BBDD->scapeCharts($_POST['sku']),
+                 $this->BBDD->scapeCharts($_POST['upc']),
+                 $this->BBDD->scapeCharts($_POST['ean']),
+                 $this->BBDD->scapeCharts($_POST['jan']),
+                 $this->BBDD->scapeCharts($_POST['isbn']),
+                 $this->BBDD->scapeCharts($_POST['mpn']),
+                 $this->BBDD->scapeCharts($_POST['location']),
+                 $this->BBDD->scapeCharts($_POST['quantity']),
+                 $this->BBDD->scapeCharts($_POST['stock_status_id']),
+                 $this->BBDD->scapeCharts(str_replace('../../image/', '', $file)),
+                 $this->BBDD->scapeCharts($_POST['manufacturer_id']),
+                 $this->BBDD->scapeCharts($_POST['shipping']),
+                 $this->BBDD->scapeCharts($_POST['price']),
+                 $this->BBDD->scapeCharts($_POST['points']),
+                 $this->BBDD->scapeCharts($_POST['tax_class_id']),
+                 $this->BBDD->scapeCharts($_POST['date_available']),
+                 $this->BBDD->scapeCharts($_POST['weight']),
+                 $this->BBDD->scapeCharts($_POST['weight_class_id']),
+                 $this->BBDD->scapeCharts($_POST['length']),
+                 $this->BBDD->scapeCharts($_POST['width']),
+                 $this->BBDD->scapeCharts($_POST['height']),
+                 $this->BBDD->scapeCharts($_POST['length_class_id']),
+                 $this->BBDD->scapeCharts($_POST['subtract']),
+                 $this->BBDD->scapeCharts($_POST['minimum']),
+                 $this->BBDD->scapeCharts($_POST['sort_order']),
+                 $this->BBDD->scapeCharts($_POST['status']),
+                 $this->BBDD->scapeCharts($_POST['date_added']),
+                 $this->BBDD->scapeCharts($_POST['date_modified']),
+                 $this->BBDD->scapeCharts($_POST['user_id']),
+                 $this->BBDD->scapeCharts($_POST['product_id'])                
+             ), $objectProductUpdate);
+                $success = array();
+                $success['status'] = true;
+                $success['response'] = '200';
+                $success['data'] = $_POST;
+                return json_encode($success);
+        } catch (PDOException $ex) {
+            return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+          } 
+        } else {
+            $err = array();
+            $err['status'] = false;
+            $err['response'] = '400';
+            $err['message'] = 'El archivo es inválido';
+            return json_encode($err);
+        }
+      } else {
+          // Sin imagen
+                   try {
              $fields = 'model = ?, sku = ?, upc=?,
                         ean=?,jan=?,isbn=?,mpn=?,
                         location=?,quantity=?,
@@ -534,7 +614,6 @@ class products {
                  $this->BBDD->scapeCharts($_POST['location']),
                  $this->BBDD->scapeCharts($_POST['quantity']),
                  $this->BBDD->scapeCharts($_POST['stock_status_id']),
-                 //$this->BBDD->scapeCharts($_POST['image']),
                  $this->BBDD->scapeCharts($_POST['manufacturer_id']),
                  $this->BBDD->scapeCharts($_POST['shipping']),
                  $this->BBDD->scapeCharts($_POST['price']),
@@ -556,15 +635,20 @@ class products {
                  $this->BBDD->scapeCharts($_POST['user_id']),
                  $this->BBDD->scapeCharts($_POST['product_id'])                
              ), $objectProductUpdate);
-             return json_encode(print_r($_POST));
+                    $success = array();
+                    $success['status'] = true;
+                    $success['response'] = '200';
+                    $success['data'] = $_POST;
+                    return json_encode($success);
         } catch (PDOException $ex) {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
-        }       
+          }
+      }
     }
-    public function updateProductDescription($product_id,$user_id) {
+    public function updateProductDescription() {
         $fields = 'language_id = ?, name = ?,
-                   description = ?, tag = ?,
-                   meta_title = ?, meta_description=?,
+                   description = ?, tag = ?,               
+                   meta_description=?,
                    meta_keyword=?
                    ';
         $objectProductDescription = $this->BBDD->updateDriver('user_id = ? && product_id = ?',PREFIX.'product_description', $this->driver, $fields);
@@ -572,29 +656,51 @@ class products {
             $this->BBDD->scapeCharts($_POST['language_id']),
             $this->BBDD->scapeCharts($_POST['name']),
             $this->BBDD->scapeCharts($_POST['description']),
-            $this->BBDD->scapeCharts($_POST['tag']),
-            $this->BBDD->scapeCharts($_POST['meta_title']),
+            $this->BBDD->scapeCharts($_POST['tag']),          
             $this->BBDD->scapeCharts($_POST['meta_description']),
             $this->BBDD->scapeCharts($_POST['meta_keyword']),
-            $this->BBDD->scapeCharts($user_id),
-            $this->BBDD->scapeCharts($product_id)
+            $this->BBDD->scapeCharts($_POST['user_id']),
+            $this->BBDD->scapeCharts($_POST['product_id'])
         ), $objectProductDescription);
-        return json_encode(print_r($_POST));
+        $success = array();
+        $success['status'] = true;
+        $success['response'] = '200';
+        $success['data'] = $_POST;
+        return json_encode($success);
     }
     public function updateDiscount() {
-        $fields = 'customer_group_id = ?,quantity = ?,priority = ?,
-            price = ?,date_start = ?,date_end = ?';
-    $objectProductDiscount = $this->BBDD->updateDriver('product_discount_id = ?',PREFIX.'product_discount', $this->driver, $fields);
-    $this->BBDD->runDriver(array(
-        $this->BBDD->scapeCharts($_POST['customer_group_id']),
-        $this->BBDD->scapeCharts($_POST['quantity']),
-        $this->BBDD->scapeCharts($_POST['priority']),
-        $this->BBDD->scapeCharts($_POST['price']),
-        $this->BBDD->scapeCharts($_POST['date_start']),
-        $this->BBDD->scapeCharts($_POST['date_end']),
-        $this->BBDD->scapeCharts($_POST['product_discount_id'])
-    ), $objectProductDiscount);
-        return json_encode(print_r($_POST));
+            
+        if (isset($_POST['quantity']) && (!empty($_POST['quantity']))
+           && isset($_POST['price']) && (!empty($_POST['price']))
+           && isset($_POST['date_start']) && (!empty($_POST['date_start']))
+           && isset($_POST['date_end']) && (!empty($_POST['date_end']))
+           ){
+            $fields = 'customer_group_id = ?,quantity = ?,priority = ?,
+               price = ?,date_start = ?,date_end = ?';
+       $objectProductDiscount = $this->BBDD->updateDriver('product_discount_id = ?',PREFIX.'product_discount', $this->driver, $fields);
+       $this->BBDD->runDriver(array(
+           $this->BBDD->scapeCharts($_POST['customer_group_id']),
+           $this->BBDD->scapeCharts($_POST['quantity']),
+           $this->BBDD->scapeCharts($_POST['priority']),
+           $this->BBDD->scapeCharts($_POST['price']),
+           $this->BBDD->scapeCharts($_POST['date_start']),
+           $this->BBDD->scapeCharts($_POST['date_end']),
+           $this->BBDD->scapeCharts($_POST['product_discount_id'])
+       ), $objectProductDiscount);
+           $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);           
+           } else {
+               $err = array();
+               $err['status'] = false;
+               $err['response'] = '400';
+               $err['message'] = 'Completa todos los campos';
+               return json_encode($err);
+           }
+
     }
     public function updateFilter() {
         $fields = 'filter_id = ?';
@@ -603,7 +709,12 @@ class products {
             $this->BBDD->scapeCharts($_POST['filter_id']),
             $this->BBDD->scapeCharts($_POST['product_id'])
         ), $objectProductFilter);
-        return json_encode(print_r($_POST));
+                   $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);   
     }
     public function updateImages() {
         $fileImage = new validacionImagen();
@@ -682,7 +793,11 @@ class products {
         }
     }
     public function updateSpecial() {
-        try {
+            if ( isset($_POST['price']) && (!empty($_POST['price']))
+           && isset($_POST['date_start']) && (!empty($_POST['date_start']))
+           && isset($_POST['date_end']) && (!empty($_POST['date_end']))
+           ){
+               try {
             $fields = 'customer_group_id = ?,priority=?,
                 price = ?, date_start = ?, date_end = ?';
             $obbjectProductSpecial = $this->BBDD->updateDriver('product_special_id = ?',PREFIX.'product_special', $this->driver, $fields);
@@ -694,10 +809,22 @@ class products {
                 $this->BBDD->scapeCharts($_POST['date_end']),
                 $this->BBDD->scapeCharts($_POST['product_special_id'])
             ), $obbjectProductSpecial);
-            return json_encode('Descuento actualizado');
+                       $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);           
         } catch (PDOException $ex) {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
+      } else {
+               $err = array();
+               $err['status'] = false;
+               $err['response'] = '400';
+               $err['message'] = 'Completa todos los campos';
+               return json_encode($err);
+      }
     }
     public function updateProductCategory() {
         $fields = 'category_id = ?';
@@ -745,7 +872,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($product_id)
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }        
@@ -756,7 +886,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($product_id)
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }  
@@ -767,7 +900,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($product_id)
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }         
@@ -778,7 +914,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($product_id)
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }          
@@ -789,7 +928,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($product_id)
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }          
@@ -800,7 +942,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($_POST['product_special_id'])
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      } 
@@ -811,7 +956,10 @@ class products {
          $this->BBDD->runDriver(array(
              $this->BBDD->scapeCharts($_POST['product_discount_id'])
          ), $objectProductDelete);
-         return true;
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         return json_encode($success);
      } catch (PDOException $ex) {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      } 
