@@ -21,14 +21,23 @@ if($_GET) {
         case 'select':
             echo $productRoute->selectProducts($_GET['user_id']);         
             break;
+        case 'selectProductTable':
+            echo $productRoute->getProductAndDescription($_GET['user_id']);
+            break;
         case 'selectData':
             echo $productRoute->selectProductDataById($_GET['product_id']);
             break;
         case 'selectDescription':
             echo $productRoute->selectProductDescriptionById($_GET['product_id']);
             break;
+        case 'searchProduct':
+            echo $productRoute->searchProduct();
+            break;
         case 'selectFilter':
             echo $productRoute->selectProductFilterById($_GET['product_id']);
+            break;
+        case 'getImage':
+            echo $productRoute->getImageData($_GET['product_id']);
             break;
         case 'selectCategory':
             echo $productRoute->selectProductcategoryById($_GET['product_id']);
@@ -44,6 +53,9 @@ if($_GET) {
             break;
         case 'selectTableData':
             echo $productRoute->selectTableData($_GET['product_id']);
+            break;
+        case 'returnID':
+            echo $productRoute->returnIDProduct($_GET['product_id']);
             break;
      /**************************************************************
      *  INSERTS
@@ -121,6 +133,9 @@ if($_GET) {
         case 'deleteDiscount':
             echo $productRoute->deleteDiscount();
             break;
+        case 'deleteImageProduct':
+            echo $productRoute->deleteImageProduct();
+            break;  
      /**************************************************************
      *  END DELETE
      *************************************************************/
@@ -153,6 +168,50 @@ class products {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
     }
+    /*
+     * Para obtener una lista de productos CRUD
+     */
+        public function selectProductPHP($user_id) {
+        // Obtener todos los productos de la bbdd asociados a la empresa
+        try {
+            $objectProducts = $this->BBDD->selectDriver('user_id = ?', PREFIX."product", $this->driver);
+            $this->BBDD->runDriver(array(
+                $this->BBDD->scapeCharts($user_id)
+            ), $objectProducts);
+            if ($this->BBDD->verifyDriver($objectProducts)) {
+                return $this->BBDD->fetchDriver($objectProducts);
+            } else {
+                return null;
+            }
+        } catch (PDOException $ex) {
+            return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+        }
+    }
+        public function getProductAndDescription($user_id) {
+            try {
+                $data = $this->selectProductPHP($user_id);
+                if ( $data != null ) {
+                    foreach ($data as $productData) {
+                        $name = $this->BBDD->selectDriver('product_id = ?',PREFIX.'product_description', $this->driver);
+                        $this->BBDD->runDriver(array($this->BBDD->scapeCharts($productData->product_id)), $name);
+                        $dataName = $this->BBDD->fetchDriver($name);
+                        foreach($dataName as $nameData) {
+                            $success = array();
+                            $success['data'] = $data;
+                            $success['status'] = true;
+                            return json_encode($success);
+                        }
+                    }
+                } else {
+                    $err = array();
+                    $err['status'] = false;
+                    $err['message'] = 'No hay datos para mostrar';
+                    return json_encode($err);
+                }
+            } catch (PDOException $ex) {
+                return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+            }
+        }
     public function selectProductDataById($product_id) {
         try {
             $productData = $this->BBDD->selectDriver('product_id = ?',PREFIX.'product', $this->driver);
@@ -161,6 +220,58 @@ class products {
             ), $productData);
             if ($this->BBDD->verifyDriver($productData)) {
                 return json_encode($this->BBDD->fetchDriver($productData));
+            } else {
+                $error = array();
+                $error['status'] = false;
+                $error['message'] = 'No existe este producto';
+                return json_encode($error);
+            }
+        } catch (PDOException $ex) {
+            return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+        }
+    }
+    /*
+     * BUSCADOR
+     */
+    public function searchProduct() {
+        try {
+            $product = $this->BBDD->selectDriver('name LIKE ? && user_id = ?',PREFIX.'product_description', $this->driver);
+            $this->BBDD->runDriver(array(
+                $this->BBDD->scapeCharts("%{$_POST['name']}%"),
+                $this->BBDD->scapeCharts($_POST['user_id']),
+            ), $product);
+            if ( $this->BBDD->verifyDriver($product) ) {
+                $success = array();           
+                foreach($this->BBDD->fetchDriver($product) as $findImage) {                
+                    $success['data'] = $findImage;
+                    $image = $this->getPathOld($findImage->product_id,'product_id = ?','product');     
+                    $success['status'] = true;             
+                    $success['image'] = $image;
+                    return json_encode($success);
+                }
+                // private function getPathOld($image_id, $DB, $DB_ROOT) {
+            } else {
+                $err = array();
+                $err['status'] = false;
+                $err['message'] = 'No se encontraron productos';
+                $err['data'] = $_POST;
+                return json_encode($err);
+            }
+        } catch (PDOException $ex) {
+            return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+        }
+    }
+        public function returnIDProduct($product_id) {
+        try {
+            $productData = $this->BBDD->selectDriver('product_id = ?',PREFIX.'product', $this->driver);
+            $this->BBDD->runDriver(array(
+                $this->BBDD->scapeCharts($product_id)
+            ), $productData);
+            if ($this->BBDD->verifyDriver($productData)) {
+                // return json_encode($this->BBDD->fetchDriver($productData));
+                foreach($this->BBDD->fetchDriver($productData) as $id) {
+                    return json_encode($id->user_id);
+                }
             } else {
                 $error = array();
                 $error['status'] = false;
@@ -725,8 +836,8 @@ class products {
                 // Borramos la imagen anterior por rendimiento
                 $old_path = $this->getPathOld($_POST['product_image_id'], 'product_image_id = ?', 'product_image');
                 if($old_path != null) {
-                     $delete = unlink("../../image/{$old_path}"); // Borramos la antigua imagen
-                        if($delete) {
+                     // $delete = unlink("../../image/{$old_path}"); // Borramos la antigua imagen
+                         // if($delete) {
                             // Actualizamos por la nueva
                           $fields = 'image = ?';
                           $objectProductImages = $this->BBDD->updateDriver('product_image_id = ?',PREFIX.'product_image', $this->driver, $fields);
@@ -734,8 +845,13 @@ class products {
                               $this->BBDD->scapeCharts(str_replace('../../image/', '', $file)),
                               $this->BBDD->scapeCharts($_POST['product_image_id']),
                           ), $objectProductImages);
-                          return json_encode('Imagen actualizada con éxito');
-                     }
+                                $success = array();
+                                $success['status'] = true;
+                                $success['message'] = 'Imagen insertada con éxito';
+                                $success['path'] = $_FILES['image']['name'];
+                                $success['data'] = $_POST;
+                                return json_encode($success);
+                    // }
                 } else {
                     return json_encode('No se ha encontrado la imagen');
                 }
@@ -964,6 +1080,21 @@ class products {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      } 
     }
+        public function deleteImageProduct() {
+        try {
+         $objectProductDelete = $this->BBDD->deleteDriver('product_image_id = ?', PREFIX.'product_image', $this->driver);
+         $this->BBDD->runDriver(array(
+             $this->BBDD->scapeCharts($_POST['product_image_id'])
+         ), $objectProductDelete);
+         $sucess = array();
+         $sucess['status'] = true;
+         $success['message'] = 'Eliminado con éxito';
+         $success['data'] = $_POST;
+         return json_encode($success);
+     } catch (PDOException $ex) {
+         return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+     } 
+    }
      /**************************************************************
      * END DELETE MODE
      *************************************************************/
@@ -1015,7 +1146,7 @@ class products {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
     }
-    private function getImageData($product_id) {
+    public function getImageData($product_id) {
         try {
             $productObjectImage = $this->BBDD->selectDriver('product_id = ?',PREFIX.'product', $this->driver);
             $this->BBDD->runDriver(array(
