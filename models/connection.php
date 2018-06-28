@@ -40,9 +40,9 @@ class dbDriver
     {
         if($condition!=null)
         {
-           return $PDO_port->prepare("SELECT COUNT(*) as index FROM {$bbdd} WHERE {$condition}");
+           return $PDO_port->prepare("SELECT COUNT(*) as 'index' FROM {$bbdd} WHERE {$condition}");
         }else{
-            return $PDO_port->prepare("SELECT COUNT(*) as index FROM {$bbdd}");
+            return $PDO_port->prepare("SELECT COUNT(*) as 'index' FROM {$bbdd}");
         }
     }
     public function countDriverByGroup($condition,$bbdd,$PDO_port,$field,$group)

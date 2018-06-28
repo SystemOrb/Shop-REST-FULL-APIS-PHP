@@ -135,12 +135,24 @@ if($_GET) {
             break;
         case 'deleteImageProduct':
             echo $productRoute->deleteImageProduct();
-            break;  
+            break;
+        case 'deleteFilter':
+            echo $productRoute->deleteFilter();
+            break;
+        case 'deleteCategory':
+            echo $productRoute->deleteCategory();
+            break;
      /**************************************************************
      *  END DELETE
      *************************************************************/
         case 'selectOne':
             return $productRoute->getProductById($_GET['product_id'],$_GET['user_id']);
+            break;
+        case 'countItems':
+            echo $productRoute->countItemsPosted($_GET['emp_id']);
+            break;
+        case 'countSell':
+            echo $productRoute->countSell($_GET['emp_id']);
             break;
         default:
             return json_encode('Operación no permitida');
@@ -813,12 +825,42 @@ class products {
            }
 
     }
-    public function updateFilter() {
+    public function updateCategory() {
+        $fields = 'category_id = ?';
+        $objectProductFilter = $this->BBDD->updateDriver('category_id = ? && product_id = ?',PREFIX.'product_to_category', $this->driver, $fields);
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($_POST['category_id']),
+            $this->BBDD->scapeCharts($_POST['category_id']),
+            $this->BBDD->scapeCharts($_POST['product_id'])
+        ), $objectProductFilter);
+                   $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);   
+    }
+        public function deleteCategory() {
+        $fields = 'category_id = ?';
+        $objectProductFilter = $this->BBDD->deleteDriver('category_id = ? && product_id = ?',PREFIX.'product_to_category', $this->driver);
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($_POST['category_id']),
+            $this->BBDD->scapeCharts($_POST['product_id'])
+        ), $objectProductFilter);
+                   $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);   
+    }
+        public function updateFilter() {
         $fields = 'filter_id = ?';
         $objectProductFilter = $this->BBDD->updateDriver('product_id = ?',PREFIX.'product_filter', $this->driver, $fields);
         $this->BBDD->runDriver(array(
             $this->BBDD->scapeCharts($_POST['filter_id']),
-            $this->BBDD->scapeCharts($_POST['product_id'])
+            $this->BBDD->scapeCharts($_POST['product_id']),
+            //$this->BBDD->scapeCharts($_POST['filter_id'])    
         ), $objectProductFilter);
                    $success = array();
            $success['status'] = true;
@@ -1024,6 +1066,19 @@ class products {
          return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
      }         
     }
+        public function deleteFilter() {
+        $objectProductFilter = $this->BBDD->deleteDriver('filter_id = ? && product_id = ?',PREFIX.'product_filter', $this->driver);
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($_POST['filter_id']),
+            $this->BBDD->scapeCharts($_POST['product_id'])
+        ), $objectProductFilter);
+                   $success = array();
+           $success['status'] = true;
+           $success['response'] = '400';
+           $success['message'] = 'Actualizado con éxito';
+           $success['data'] = $_POST;
+           return json_encode($success);   
+    }
     public function deleteProductDiscounts($product_id) {
      try {
          $objectProductDelete = $this->BBDD->deleteDriver('product_id = ?', PREFIX.'product_discount', $this->driver);
@@ -1163,6 +1218,53 @@ class products {
             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
         }
     }
+     public function countItemsPosted($emp_id) {
+         try {
+             $count = $this->BBDD->countDriver('user_id = ?',PREFIX.'product', $this->driver);
+             $this->BBDD->runDriver(array(
+                 $this->BBDD->scapeCharts($emp_id)
+             ), $count);
+             if ($this->BBDD->verifyDriver($count)) {
+                 foreach ($this->BBDD->fetchDriver($count) as $qty) {
+                     $success = array();
+                     $success['status'] = true;
+                     $success['message'] = 'items cargados';
+                     $success['total'] = $qty->index;
+                     return json_encode($success);
+                 }
+             } else {
+                 $err['status'] = false;
+                 $err['message'] = 'No tiene ningun producto';
+                 return json_encode($err);
+             }
+         } catch (Exception $ex) {
+             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+         }
+     }
+          public function countSell($emp_id) {
+         try {
+             $count = $this->BBDD->countDriver('user_id = ?',PREFIX.'order', $this->driver);
+             $this->BBDD->runDriver(array(
+                 $this->BBDD->scapeCharts($emp_id)
+             ), $count);
+             if ($this->BBDD->verifyDriver($count)) {
+                 foreach ($this->BBDD->fetchDriver($count) as $qty) {
+                     $success = array();
+                     $success['status'] = true;
+                     $success['message'] = 'ventas';
+                     $success['total'] = $qty->index;
+                     return json_encode($success);
+                 }
+             } else {
+                 $err['status'] = false;
+                 $err['message'] = 'No tiene ningun producto';
+                 return json_encode($err);
+             }
+         } catch (Exception $ex) {
+             return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+         }
+     }
+     
     /*}
      * Para buscar el ultimo producto publicado con esa referencia
      * IDEAL para hacer busqueda sin el ID UNICO

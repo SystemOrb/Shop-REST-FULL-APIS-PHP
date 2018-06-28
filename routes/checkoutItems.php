@@ -14,11 +14,14 @@ if ($_GET) {
         case 'cartItems':
             echo $items->cart($_GET['customer_id']);
             break;
-            case 'cartData':
+        case 'cartData':
             echo $items->cartData($_GET['product_id']);
             break;
-            case 'cartDescription':
+        case 'cartDescription':
             echo $items->cartDescription($_GET['product_id']);
+            break;
+        case 'sumCart':
+            echo $items->sumCart($_GET['customer_id']);
             break;
     }
 }
@@ -92,6 +95,27 @@ class items {
             }
         } catch (PDOException $ex) {
              return json_encode('Fallo en la conexión con la base de datos' . $ex->getMessage() . ' ' . $ex->getFile() . ' ' . $ex->getLine());
+        }
+    }
+    public function sumCart($customer_id)
+    {
+        $sumCart = $this->BBDD->sumDriver('cart_client_id=?',PREFIX."carrito",$this->driver,"cart_price");
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($customer_id)
+        ), $sumCart);
+        if($this->BBDD->verifyDriver($sumCart))
+        {
+            foreach ($this->BBDD->fetchDriver($sumCart) as $tot) {
+                $success = array();
+                $success['status'] = true;
+                $success['total'] = $tot->total;
+                return json_encode($success);
+            }
+        }else{
+            $err = array();
+            $err['status'] = false;
+            $err['total'] = 0;
+            return json_encode($err);
         }
     }
     protected $BBDD;
