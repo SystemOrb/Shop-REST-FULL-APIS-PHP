@@ -24,6 +24,15 @@ if ($_GET) {
         case 'getPayer':
             echo $address->getPayerDetails($_GET['customer_id']);
             break;
+        case 'getAllCountries':
+            echo $address->getAllCountries();
+            break;
+        case 'getAllZones':
+            echo $address->getAllZones();
+            break;
+        case 'getRegion':
+            echo $address->getAllZonesByCountry($_GET['country_id']);
+            break;
     }
 }
 class Address {
@@ -86,6 +95,16 @@ class Address {
             $err['message'] = 'No tiene direcciones cargadas';
             return json_encode($err);
         }
+    }
+    public function getAllCountries() {
+        $country = $this->BBDD->selectDriver(null,PREFIX.'country', $this->driver);
+        $this->BBDD->runDriver(null, $country);
+        return json_encode($this->BBDD->fetchDriver($country));
+    }
+        public function getAllZonesByCountry($country) {
+        $zone = $this->BBDD->selectDriver('country_id = ?',PREFIX.'zone', $this->driver);
+        $this->BBDD->runDriver(array($this->BBDD->scapeCharts($country)), $zone);
+        return json_encode($this->BBDD->fetchDriver($zone));
     }
     protected $BBDD;
     protected $driver;

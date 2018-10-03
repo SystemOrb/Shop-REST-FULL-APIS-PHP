@@ -20,6 +20,9 @@ if($_GET['operationType']) {
         case 'update':
             echo $shop->updateShop();
         break;
+        case 'displayShop': 
+            echo $shop->getShop($_GET['rgza_shop']);
+            break;
     }
 }
 class loginShop {
@@ -55,6 +58,23 @@ class loginShop {
             $object = array();
             $object['status'] = false;
             $object['message'] = 'El correo ya existe';
+            return json_encode($object);
+        }
+    }
+    public function getShop($shop_id) {
+        $shop = $this->BBDD->selectDriver('user_id = ?',PREFIX.'shop_customer', $this->driver);
+        $this->BBDD->runDriver(array(
+            $this->BBDD->scapeCharts($shop_id)
+        ), $shop);
+        if ($this->BBDD->verifyDriver($shop)) {
+            $object = array();
+            $object['status'] = true;
+            $object['data'] = $this->BBDD->fetchDriver($shop);
+            return json_encode($object);
+        } else {
+            $object = array();
+            $object['status'] = false;
+            $object['message'] = 'No existe esta ID';
             return json_encode($object);
         }
     }

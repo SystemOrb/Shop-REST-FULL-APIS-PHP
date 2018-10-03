@@ -1,9 +1,1 @@
-[28-Jun-2018 02:09:48 UTC] PHP Warning:  Missing argument 1 for products::insertProduct(), called in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 64 and defined in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 421
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: location in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 448
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: points in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 455
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: tax_class_id in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 456
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: date_available in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 457
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: subtract in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 464
-[28-Jun-2018 02:09:48 UTC] PHP Notice:  Undefined index: sort_order in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 466
-[28-Jun-2018 02:09:49 UTC] PHP Notice:  Undefined index: meta_title in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 553
-[28-Jun-2018 02:10:37 UTC] PHP Notice:  Undefined index: sort_order in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/products.php on line 518
+[25-Sep-2018 00:43:28 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement in the script in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/p2p/request.php on line 14
