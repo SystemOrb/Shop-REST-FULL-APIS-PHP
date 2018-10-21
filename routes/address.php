@@ -62,6 +62,7 @@ class Address {
         foreach ($this->BBDD->fetchDriver($country) as $CODE) {
             $iso = array();
             $iso['status'] = true;
+            $iso['name'] = $CODE->name;
             $iso['iso_code'] = $CODE->iso_code_2;
             return json_encode($iso);
         }

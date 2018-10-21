@@ -1,1 +1,14 @@
-[25-Sep-2018 00:43:28 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement in the script in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/p2p/request.php on line 14
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: firstname in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 41
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: product_name in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 284
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: firstname in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 286
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: product_name in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 286
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: comerce_status in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 288
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: customer_id in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 297
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: customer_id in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 329
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: firstname in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 41
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: product_name in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 284
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: firstname in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 286
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: product_name in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 286
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: comerce_status in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 288
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: customer_id in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 297
+[21-Oct-2018 02:29:51 UTC] PHP Notice:  Undefined index: customer_id in /home/nismwq38dt2p/public_html/ragazza_backend/api/routes/ship.php on line 329

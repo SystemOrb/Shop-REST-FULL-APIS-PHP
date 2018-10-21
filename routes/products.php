@@ -546,7 +546,7 @@ class products {
         $this->BBDD->runDriver(array(
             $this->BBDD->scapeCharts($_REQUEST['user_id']),
             $this->BBDD->scapeCharts($_REQUEST['product_id']),
-            $this->BBDD->scapeCharts($_REQUEST['language_id']),
+            $this->BBDD->scapeCharts(1),
             $this->BBDD->scapeCharts($_REQUEST['name']),
             $this->BBDD->scapeCharts($_REQUEST['description']),
             $this->BBDD->scapeCharts($_REQUEST['tag']),

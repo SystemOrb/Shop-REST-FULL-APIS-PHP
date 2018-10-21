@@ -32,6 +32,44 @@ class dbDriver
             
             }       
     }
+    public function multipleOptiosn($condition,$bbdd, $PDO_port, $bbd2, $bbdd3) {
+        if($condition!=null){
+           // return $PDO_port->prepare("SELECT * FROM {$bbdd} WHERE {$condition}");
+            return $PDO_port->prepare("SELECT DISTINCT * FROM {$bbdd} p LEFT JOIN {$bbd2} pd ON (p.product_id = pd.product_id) "
+            . "LEFT JOIN {$bbdd3} pc ON (pc.product_id = pd.product_id)  WHERE {$condition}");
+        }else{
+           return $PDO_port->prepare("SELECT * FROM {$bbdd}");       
+        }  
+    }
+        public function multipleLeftBySearch($condition,$bbdd, $PDO_port, $bbd2, $bbdd3, $query1, $query2) {
+        if($condition!=null){
+           // return $PDO_port->prepare("SELECT * FROM {$bbdd} WHERE {$condition}");
+            return $PDO_port->prepare("SELECT DISTINCT * FROM {$bbdd} p LEFT JOIN {$bbd2} pd ON (p.{$query1} = pd.{$query2}) "
+            . "LEFT JOIN {$bbdd3} pc ON (pc.category_id = pd.category_id)  WHERE {$condition}");
+        }else{
+           return $PDO_port->prepare("SELECT * FROM {$bbdd}");       
+        }  
+    }
+    public function Explorer($condition,$bbdd, $PDO_port, $bbd2, $bbdd3, $query1, $query2, $row) {
+        return $PDO_port->prepare("SELECT DISTINCT * "
+                . "FROM {$bbdd} p LEFT JOIN {$bbd2} pd ON (p.product_id = pd.product_id)"
+                . "LEFT JOIN {$bbdd3} pc ON (pc.category_id = pd.category_id)"
+                . "WHERE MATCH ({$row}) AGAINST ('{$condition}')");
+    }
+    // SELECT * FROM ARTICULOS WHERE MATCH(TITULO, DESARROLLO) AGAINST ('$busqueda')
+    /*
+     * SELECT DISTINCT * FROM " . DB_PREFIX . "product p LEFT JOIN " . DB_PREFIX . 
+     * "product_description pd ON (p.product_id = pd.product_id) 
+     * WHERE p.product_id = '" . (int)$product_id . "'
+     */
+                            /*
+                         * SELECT DISTINCT *, MATCH (name) AGAINST ('Chaqueta') AS 
+                         * items FROM rgza_product_description p LEFT JOIN 
+                         * rgza_product_to_category pd ON (p.product_id = pd.product_id)
+LEFT JOIN rgza_category pc ON (pc.category_id = pd.category_id)
+WHERE MATCH (name) AGAINST ('Marca Anika') ORDER BY items DESC LIMIT 50
+
+                         */
     public function scapeCharts($value)
     {
         return htmlentities(addslashes($value));

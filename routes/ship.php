@@ -1,188 +1,46 @@
 <?php
-namespace Kushki;
-use kushki\lib\Amount;
-use kushki\lib\Kushki;
-use kushki\lib\KushkiEnvironment;
-use kushki\lib\Transaction;
-use kushki\lib\ExtraTaxes;
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type");
 header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
-require_once '../../models/config.php';
-require_once '../../models/connection.php';
-require_once '../kushki/autoload.php';
-require_once '../mail/mailers.php';
-if ($_POST) {
-    if (isset($_POST['kushkiToken']) && (!empty($_POST['kushkiToken']))) {
-        if (isset($_POST['totalAmount']) && (!empty($_POST['totalAmount']))) {
-            $paymentGateway = new PaymentRequest(); // Creamos un objeto de pago
-            $payload = $paymentGateway->createPaymentObject(); // Crearmos la solicitud de pago
-            $getBBDDSumCart = $paymentGateway->sumCart($_POST['customer']);
-            // Verificamos si el front fue manipulado buscando data de la db
-            if ($getBBDDSumCart != 0) {
-                if ($getBBDDSumCart == $_POST['totalAmount']) {
-                    $payment = $payload->charge($_POST['kushkiToken'], $paymentGateway->chargePaymentGateway());
-                    if ($payment->isSuccessful()) {
-                        if ($paymentGateway->sendEmail($_POST['firstname'], null)){
-                         if ($paymentGateway->removeCart($_POST['customer'])) {
-                            if ($paymentGateway->generateOrder()) {
-                                /*$response = array();
-                                $response['text'] = $payment->getResponseText();
-                                $response['code'] = $payment->getResponseCode();
-                                $response['ticket'] = $payment->getTicketNumber();*/
-                                $ticket = base64_encode($payment->getTicketNumber());
-                                header("Location: http://ragazzashop.com/empresas/#/confirm/payment/true?ticket={$ticket}");
-                            }   
-                        }
-                      }
-                    } else {
-                        // echo "Error " . $transaccion->getResponseCode() . ": " . $transaccion->getResponseText();
-                        $response = array();
-                        $response['status'] = false;
-                        $response['statusCode'] = 400;
-                        $response['message'] = 'No pudimos procesar tu pago';
-                        $response['text'] = $payment->getResponseText();
-                        $response['code'] = $payment->getResponseCode();
-                        header("Location: http://ragazzashop.com/empresas/#/confirm/payment/false?ticket=0");
-
-                    }
-                } else {
-                    /*$response = array();
-                    $response['status'] = false;
-                    $response['statusCode'] = 400;
-                    $response['message'] = 'El monto es invalido';*/
-                    header("Location: http://ragazzashop.com/empresas/#/confirm/payment/false?ticket=0&msg=400");
-                }
-            } else {
-                    /*$response = array();
-                    $response['status'] = false;
-                    $response['statusCode'] = 402;
-                    $response['message'] = 'Fallo en las credenciales';*/
-                    header("Location: http://ragazzashop.com/empresas/#/confirm/payment/false?ticket=0&msg=402");
-            }
-        }
+require_once '../models/config.php';
+require_once '../models/connection.php';
+require_once './mail/mailers.php';
+if ($_GET) {
+    $address = new Shipping();
+    switch($_GET['operationType']) {
+        case 'shipMethods':
+            echo $address->getShipMethod();
+            break;
+        case 'updateShipInvoice': 
+            echo $address->editOrderStatus($_GET['order_id'], $_GET['order_status']);
+            break;
     }
 }
-class PaymentRequest {
+class Shipping {
         public function __construct() {
         $this->BBDD = new \dbDriver;
         $this->driver = $this->BBDD->setPDO();
         $this->BBDD->setPDOConfig($this->driver);
     }
-    public function createPaymentObject() {
-        $merchantId = "1000000363945473759415366872700";
-        $language = \kushki\lib\KushkiLanguage::ES;
-        $currency = \kushki\lib\KushkiCurrency::USD;
-        $environment = \kushki\lib\KushkiEnvironment::TESTING;
-        $kushki = new Kushki($merchantId, $language, $currency, $environment);
-        return $kushki;
+    public function getShipMethod() {
+        $shipMethods = $this->BBDD->selectDriver(null, PREFIX.'order_status', $this->driver);
+        $this->BBDD->runDriver(null, $shipMethods);
+        if ($this->BBDD->verifyDriver($shipMethods)) {
+            return json_encode($this->BBDD->fetchDriver($shipMethods));
+        } else {
+            return json_encode('');
+        }
     }
-    public function chargePaymentGateway() {
-        $amount = new Amount($_POST['totalAmount'], 0, 0, 0);
-        return $amount;
-    }
-    public function sumCart($customer_id) {
-        $sumCart = $this->BBDD->sumDriver('cart_client_id=?',PREFIX."carrito",$this->driver,"cart_price");
+    public function editOrderStatus($order_id, $order_status_id) {
+        $shipMethods = $this->BBDD->updateDriver('order_id = ?', PREFIX.'order', $this->driver, 'order_status_id = ?');
         $this->BBDD->runDriver(array(
-            $this->BBDD->scapeCharts($customer_id)
-        ), $sumCart);
-        if($this->BBDD->verifyDriver($sumCart))
-        {
-            foreach ($this->BBDD->fetchDriver($sumCart) as $tot) {
-                return $tot->total;
-            }
-        }else{
-            return 0;
-        }
-    }
-    public function removeCart($customer_id) {
-        try {
-            $cart = $this->BBDD->deleteDriver('cart_client_id = ?', PREFIX.'carrito', $this->driver);
-            $this->BBDD->runDriver(array(
-                $this->BBDD->scapeCharts($customer_id)
-            ), $cart);
-            return true;
-        } catch (PDOException $ex) {
-            exit('failure to connect with database server');
-        }
-    }
-    public function generateOrder() {
-        // Generamos una orden por cada producto, por si son de distintas empresas
-        $time = time();
-        $date = date("Y-m-d ", $time);
-        $itemOrder = json_decode($_POST['custom_field']);
-        foreach ($itemOrder as $item) {
-                 $fields = 'user_id, invoice_no, invoice_prefix, store_id, store_name,
-                   store_url, customer_id, customer_group_id, firstname,
-                   lastname, email, telephone, fax, custom_field, payment_firstname,
-                   payment_lastname, payment_company, payment_address_1, payment_address_2,
-                   payment_city, payment_postcode, payment_country, payment_country_id, 
-                   payment_zone, payment_zone_id, payment_address_format, payment_custom_field,
-                   payment_method, payment_code, shipping_firstname, shipping_lastname, shipping_address_1,
-                   shipping_address_2, shipping_city, shipping_postcode, shipping_country, shipping_country_id,
-                   shipping_zone, shipping_zone_id, shipping_method, shipping_code,  total, order_status_id,  currency_id,
-                   currency_code, date_added
-                   '; // 43
-        $sql = '?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?'; // 43   
-      try {
-            $invoice = $this->BBDD->insertDriver($sql,PREFIX.'order',$this->driver, $fields);
-            $this->BBDD->runDriver(array(
-                $this->BBDD->scapeCharts($_POST['customer']),
-                $this->BBDD->scapeCharts(rand(5, 15)),
-                $this->BBDD->scapeCharts("INV-{$date}-00"),
-                $this->BBDD->scapeCharts($item->cart_product->user_id),
-                $this->BBDD->scapeCharts($item->store->shop_name),
-                $this->BBDD->scapeCharts('http://ragazzashop.com/empresas/#/login'),
-                $this->BBDD->scapeCharts($_POST['customer']),
-                $this->BBDD->scapeCharts(3),
-                $this->BBDD->scapeCharts($_POST['firstname']),
-                $this->BBDD->scapeCharts($_POST['lastname']),
-                $this->BBDD->scapeCharts(null),
-                $this->BBDD->scapeCharts($_POST['telephone']),
-                $this->BBDD->scapeCharts($_POST['telephone']),
-                $this->BBDD->scapeCharts($item->cart_product->product_id),
-                $this->BBDD->scapeCharts($_POST['payment_firstname']),
-                $this->BBDD->scapeCharts($_POST['payment_lastname']),
-                $this->BBDD->scapeCharts($_POST['payment_company']),
-                $this->BBDD->scapeCharts($_POST['payment_address_1']),
-                $this->BBDD->scapeCharts($_POST['payment_address_2']),
-                $this->BBDD->scapeCharts($_POST['payment_city']),
-                $this->BBDD->scapeCharts($_POST['payment_postcode']),
-                $this->BBDD->scapeCharts($_POST['payment_country']),
-                $this->BBDD->scapeCharts($_POST['payment_country_id']),
-                $this->BBDD->scapeCharts($_POST['payment_zone']),
-                $this->BBDD->scapeCharts($_POST['payment_zone_id']),
-                $this->BBDD->scapeCharts($_POST['payment_address_format']),
-                $this->BBDD->scapeCharts($_POST['payment_custom_field']),
-                $this->BBDD->scapeCharts('Cash On Delivery'),
-                $this->BBDD->scapeCharts($_POST['payment_code']),
-                $this->BBDD->scapeCharts($_POST['shipping_firstname']),
-                $this->BBDD->scapeCharts($_POST['shipping_lastname']),
-                $this->BBDD->scapeCharts($_POST['shipping_address_1']),
-                $this->BBDD->scapeCharts($_POST['shipping_address_2']),
-                $this->BBDD->scapeCharts($_POST['shipping_city']),
-                $this->BBDD->scapeCharts($_POST['shipping_postcode']),
-                $this->BBDD->scapeCharts($_POST['shipping_country']),
-                $this->BBDD->scapeCharts($_POST['shipping_country_id']),
-                $this->BBDD->scapeCharts($_POST['payment_zone']),
-                $this->BBDD->scapeCharts($_POST['payment_zone_id']),
-                $this->BBDD->scapeCharts('Flat Shipping Rate'),
-                $this->BBDD->scapeCharts('flat.flat'),
-                $this->BBDD->scapeCharts($item->cart_product->price),
-                $this->BBDD->scapeCharts(1),
-                $this->BBDD->scapeCharts($_POST['currency_id']),
-                $this->BBDD->scapeCharts('USD'),
-                $this->BBDD->scapeCharts($date),
-            ), $invoice);
-        } catch (PDOException $ex) {
-             exit('failure to connect with database server'); 
-        }
-       }
-       return true;
-    }
-    public function sendEmail($firstname, $email) {
-        $mailer = new \Mailers();
-        $sendConfirmation = $mailer->paymentMail($firstname, 'Confirmación de pago', "<!DOCTYPE html>
+            $this->BBDD->scapeCharts($order_status_id),
+            $this->BBDD->scapeCharts($order_id)
+        ), $shipMethods);
+        $mail = new Mailers();
+        $PushNotf = $mail->paymentMail($_POST['firstname'],
+                'Notificación de tu pedido en Ragazza',
+                "<!DOCTYPE html>
 <html lang='en' xmlns='http://www.w3.org/1999/xhtml' xmlns:v='urn:schemas-microsoft-com:vml' xmlns:o='urn:schemas-microsoft-com:office:office'>
 
 <head>
@@ -423,9 +281,12 @@ class PaymentRequest {
                         <tr>
                             <td style='padding: 20px; font-family: sans-serif; font-size: 15px; line-height: 20px; color: #555555;'>
                                 <h1 style='margin: 0 0 10px; font-size: 25px; line-height: 30px; color: #333333; font-weight: normal;'>
-                                    Confirmación de compra
+                                    Tu Pedido {$_POST['product_name']} ha sido actualizado
                                 </h1>
-                                <p style='margin: 0 0 10px;'>Hola $firstname! El equipo de Ragazza te informa que tu compra ha sido procesada con éxito, accede a tu panel para verificar tu pedido .</p>
+                                <p style='margin: 0 0 10px;'>Hola {$_POST['firstname']}! El equipo de Ragazza informa que tu pedido {$_POST['product_name']} ha sido actualizado por el vendedor
+                                    <br>
+                                    El estado de tu pedido esta en:  {$this->getShipById($_POST['comerce_status'])} te notificaremos cuando tu pedido haya sido modificado nuevamente
+.</p>
                             </td>
                         </tr>
                         <tr>
@@ -433,8 +294,8 @@ class PaymentRequest {
                                 <table align='center' role='presentation' cellspacing='0' cellpadding='0' border='0' style='margin: auto;'>
                                     <tr>
                                         <td class='button-td button-td-primary' style='border-radius: 4px; background: #222222;'>
-                                            <a class='button-a button-a-primary' href='http://www.ragazzashop.com/account.php' style='background: #222222; border: 1px solid #000000; font-family: sans-serif; font-size: 15px; line-height: 15px; text-decoration: none; padding: 13px 17px; color: #ffffff; display: block; border-radius: 4px;'>
-                                                Acceso a mi cuenta
+                                            <a class='button-a button-a-primary' href='http://ragazzashop.com/empresas/#/invoice/customer/{$order_id}/{$_POST['customer_id']}/' style='background: #222222; border: 1px solid #000000; font-family: sans-serif; font-size: 15px; line-height: 15px; text-decoration: none; padding: 13px 17px; color: #ffffff; display: block; border-radius: 4px;'>
+                                                Revisar mi pedido
                                             </a>
                                         </td>
                                     </tr>
@@ -465,11 +326,28 @@ class PaymentRequest {
     </center>
 </body>
 
-</html>", $_POST['payer_email']);
-        if ($sendConfirmation) {
-            return true;
+</html>", $this->getCliEmail($_POST['customer_id']));
+        if ($PushNotf) {
+            $response = array();
+            $response['status'] = true;
+            $response['msg'] = 'Pedido actualizado con éxito';
+            return json_encode($response);
         } else {
-            return false;
+            return json_encode('');
+        }
+    }
+    private function getCliEmail($customer_id) {
+        $customer = $this->BBDD->selectDriver('customer_id = ?', PREFIX.'customer', $this->driver);
+        $this->BBDD->runDriver(array($this->BBDD->scapeCharts($customer_id)), $customer);
+        foreach($this->BBDD->fetchDriver($customer) as $resp) {
+            return $resp->email;
+        }
+    }
+    private function getShipById($ship_id) {
+        $customer = $this->BBDD->selectDriver('order_status_id = ?', PREFIX.'order_status', $this->driver);
+        $this->BBDD->runDriver(array($this->BBDD->scapeCharts($ship_id)), $customer);
+        foreach($this->BBDD->fetchDriver($customer) as $resp) {
+            return $resp->name;
         }
     }
     protected $BBDD;
