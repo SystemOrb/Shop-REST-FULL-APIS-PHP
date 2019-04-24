@@ -35,7 +35,7 @@ class loginShop {
      * Función que registra una nueva tienda afiliada a la tienda padre
      */
     public function registerShop() {
-       if(!$this->VerifyUser($_POST['shop_email'])) {
+       if(!$this->VerifyUser($_POST['shop_email']) && (!$this->VerifyIfIsClient($_POST['shop_email']))) {
             $time = time();
             $date = date("Y-m-d ", $time);
             $sql = '?,?,?,?,?,?,?';
@@ -182,7 +182,18 @@ class loginShop {
      */
         private function VerifyUser($email)
     {
-        $customer = $this->BBDD->selectDriver("shop_email = ?",PREFIX.'shop_customer',$this->driver);
+        $customer = $this->BBDD->selectDriver('shop_email = ?',PREFIX.'shop_customer',$this->driver);
+        $this->BBDD->runDriver(array($this->BBDD->scapeCharts("{$email}")),$customer);
+        if($this->BBDD->verifyDriver($customer))
+        {
+            return true;
+        }else{
+            return false;
+        }
+    }
+            private function VerifyIfIsClient($email)
+    {
+        $customer = $this->BBDD->selectDriver("email = ?",PREFIX.'customer',$this->driver);
         $this->BBDD->runDriver(array($this->BBDD->scapeCharts("{$email}")),$customer);
         if($this->BBDD->verifyDriver($customer))
         {
@@ -193,7 +204,7 @@ class loginShop {
     }
         public function getUser()
     {
-     $customer = $this->BBDD->selectDriver('shop_email LIKE ? && customer_group_id = ?',PREFIX.'shop_customer',$this->driver);
+     $customer = $this->BBDD->selectDriver('shop_email = ? && customer_group_id = ?',PREFIX.'shop_customer',$this->driver);
      $this->BBDD->runDriver(array(
          $this->BBDD->scapeCharts($_POST['shop_email']),
          $this->BBDD->scapeCharts(2)

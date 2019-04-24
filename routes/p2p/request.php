@@ -154,7 +154,7 @@ class PaymentRequest {
                 $this->BBDD->scapeCharts($_POST['payment_zone_id']),
                 $this->BBDD->scapeCharts($_POST['payment_address_format']),
                 $this->BBDD->scapeCharts($_POST['payment_custom_field']),
-                $this->BBDD->scapeCharts('Cash On Delivery'),
+                $this->BBDD->scapeCharts('Card'),
                 $this->BBDD->scapeCharts($_POST['payment_code']),
                 $this->BBDD->scapeCharts($_POST['shipping_firstname']),
                 $this->BBDD->scapeCharts($_POST['shipping_lastname']),
